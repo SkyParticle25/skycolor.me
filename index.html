@@ -1,0 +1,62 @@
+<!DOCTYPE html> 
+<html>
+
+<head>
+
+<!-- Meta info -->
+<title>My website</title> 
+<meta charset="UTF-8"> 
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600&display=swap" rel="stylesheet"> 
+
+<!-- CSS and JavaScript -->
+<link rel="stylesheet" type="text/css" href="style.css"> 
+
+</head>
+
+
+<body>
+
+<header id="header">
+    <a href="http://skycolor.me" class="logo">skycolor<span>.me</span></a> 
+    <nav> 
+        <a href="#my-projects" class="navigation-button">My projects</a> 
+        <a href="#small-projects" class="navigation-button">Small practice projects</a> 
+    </nav>
+</header> 
+
+
+<main>
+    <section id="my-projects" class="section"> 
+        <h1>My projects</h1> 
+        <div class="nothing-to-see-here">
+            <p>Nothing to see here yet...</p> 
+        </div> 
+    </section> 
+
+    <section id="small-projects" class="section"> 
+        <h1>Small practice projects</h1> 
+        <div class="project-grid"> 
+            <a class="project-card" href="small_projects/small_squares/small_squares.html"> 
+                <img class="project-icon" src="small_projects/small_squares/icon.png" width="165" height="125"> 
+                <p class="project-name">Small squares</p> 
+                <p class="project-description">The first small thing that i made in a canvas</p> 
+            </a>
+            <a class="project-card" href="small_projects/flying_particles/flying_particles.html"> 
+                <img class="project-icon" src="small_projects/flying_particles/icon.png" width="165" height="125"> 
+                <p class="project-name">Flying particles</p> 
+                <p class="project-description">Background with flying particles</p> 
+            </a>
+        </div>
+    </section> 
+</main>
+
+<canvas id="canvas-background" class="background"></canvas>
+<canvas id="canvas" class="background"></canvas>
+<script src="small_projects/flying_particles/flying_particles.js"></script> 
+
+</body>
+
+</html>
