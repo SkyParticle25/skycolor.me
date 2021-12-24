@@ -1,16 +1,25 @@
 
-//  --  Constants  -- 
+//  Constants  -------------------------------------------------------------------------- 
+
 // particles 
-const nParticles = 30; 
-const minParticleSize = 3; 
-const maxParticleSize = 5; 
-const particleColor = "#51ff51"
-const minParticleSpeed = 0.25; 
-const maxParticleSpeed = 2; 
+const PARTICLES_PER_PIXEL = 0.000035; 
+const PARTICLES_NUMBER = 50; 
+const PARTICLES_MIN_SIZE = 3; 
+const PARTICLES_MAX_SIZE = 5; 
+const PARTICLES_COLOR = "#51ff51"; 
+const PARTICLES_MIN_SPEED = 0.25; 
+const PARTICLES_MAX_SPEED = 2; 
 // connections 
-const connectionColor = "#51ff51"; 
-const connectionWidth = 0.5; 
-const maxConnectedDistance = 300; 
+const CONNECTION_COLOR = "#51ff51"; 
+const CONNECTION_WIDTH = 0.5; 
+const CONNECTION_MAX_DISTANCE = 300; 
+// gradient 
+const GRADIENT_ANGLE = 70; 
+const GRADIENT_SCREEN_COVERAGE = 0.7; 
+const GRADIENT_FIRST_POINT = 0.25; 
+const GRADIENT_FIRST_COLOR = "#50aaff"; 
+const GRADIENT_SECOND_POINT = 1; 
+const GRADIENT_SECOND_COLOR = "#ffffff"; 
 
 
 
@@ -20,25 +29,29 @@ const maxConnectedDistance = 300;
 
 
 
-//  --  Tech objects  -------------------------------------------------------------------s
+//  Tech objects  ----------------------------------------------------------------------- 
 
-function Canvas ( id ) 
+class Viewport 
 {
-    // canvas context 
-    this.canvasElement = document.getElementById( id ); 
-    this.context = this.canvasElement.getContext( "2d" ); 
-
-    // geometry 
-    this.x = undefined; 
-    this.y = undefined; 
-    this.width = undefined; 
-    this.height = undefined; 
-
-
-    this.updateGeometry = function () 
+    constructor ( homeElementId ) 
     {
-        // get canvas rect 
-        let rect = this.canvasElement.getBoundingClientRect(); 
+        // dom stuff 
+        this.homeElement = document.getElementById( homeElementId ); 
+
+        // geometry 
+        this.x; 
+        this.y; 
+        this.width; 
+        this.height; 
+
+        // init geometry data 
+        this.update(); 
+    }
+
+    update () 
+    {
+        // get home element rect 
+        let rect = this.homeElement.getBoundingClientRect(); 
 
         // update geometry data 
         this.x = rect.x; 
@@ -46,43 +59,46 @@ function Canvas ( id )
         this.width = rect.width; 
         this.height = rect.height; 
     }
+}
 
-    this.updateScale = function () 
+class Canvas 
+{
+    constructor ( id ) 
     {
-        // update geometry 
-        this.updateGeometry(); 
+        // dom stuff 
+        this.canvasElement = document.getElementById( id ); 
+        this.context = this.canvasElement.getContext( "2d" ); 
 
+        // set proper scale 
+        this.update(); 
+    }
+    
+    update = function () 
+    {
         // update canvas space 
-        this.canvasElement.setAttribute( "width", this.width ); 
-        this.canvasElement.setAttribute( "height", this.height ); 
+        this.canvasElement.setAttribute( "width", viewport.width ); 
+        this.canvasElement.setAttribute( "height", viewport.height ); 
+    }
+}; 
+
+class Mouse 
+{
+    constructor () 
+    {
+        // mouse position 
+        this.x = canvas.width / 2; 
+        this.y = canvas.height / 2; 
+
+        // adding event listeners 
+        viewport.homeElement.addEventListener( "mousemove", this.update.bind( this ) ); 
     }
 
-
-    // init stuff 
-    this.updateGeometry(); 
-    this.updateScale(); 
-
-
-    // assign event listeners 
-    window.addEventListener( "resize", this.updateScale.bind( this ) ); 
-}; 
-let canvas = new Canvas( "canvas" ); 
-let canvasBackground = new Canvas( "canvas-background" ); 
-
-let mouse = new function () 
-{
-    // creating object 
-    this.x = canvas.width / 2, 
-    this.y = canvas.height / 2, 
-
-    this.update = function ( event ) 
+    update ( event ) 
     {
+        // update mouse position 
         this.x = event.clientX - canvas.x; 
         this.y = event.clientY - canvas.y; 
     }
-
-    // adding event listeners 
-    canvas.canvasElement.addEventListener( "mousemove", this.update.bind( this ) ); 
 }; 
 
 
@@ -93,30 +109,41 @@ let mouse = new function ()
 
 
 
-//  --  Particles  ----------------------------------------------------------------------
+//  Particles  -------------------------------------------------------------------------- 
 
-function Particle ( x, y, size, color, velocity )  
+class Particle 
 {
-    //  --  Data  -- 
-    this.x = x; 
-    this.y = y; 
-    this.size = size; 
-    this.color = color; 
-    this.velocity = velocity; 
+    constructor ( x, y, size, color, velocity ) 
+    {
+        //  --  Data  -- 
+        this.x = x; 
+        this.y = y; 
+        this.size = size; 
+        this.color = color; 
+        this.velocity = velocity; 
+    }
 
 
-
-    //  --  Methods  -- 
-    this.update = function () 
+    //  Updating  ------------------------------- 
+    update = function () 
     {
         this.x += this.velocity.x; 
         this.y += this.velocity.y; 
     }
 
-    this.drawMe = function ( context ) 
+
+    //  Operations  ----------------------------- 
+    translateToSpace ( translationFactor ) 
     {
-        context.fillStyle = this.color; 
-        context.beginPath(); 
+        this.x *= translationFactor.scaleX; 
+        this.y *= translationFactor.scaleY; 
+    }
+
+
+    //  Drawing  -------------------------------- 
+    drawMe = function ( context ) 
+    {
+        context.moveTo( this.x + this.size / 2, this.y ); 
         context.arc
         (
             this.x, 
@@ -124,111 +151,245 @@ function Particle ( x, y, size, color, velocity )
             this.size / 2, 
             0, 
             Math.PI * 2 
-        ); 
-        context.fill(); 
+        );    
     }
-}; 
+}
 
-function ParticleFactory ( minSize, maxSize, color, minSpeed, maxSpeed ) 
+class Particles 
 {
-    // particle creation interface 
-    return function createParticle () 
+    constructor ( 
+        { 
+            particlesPerPixel, 
+            minSize, 
+            maxSize, 
+            color, 
+            minSpeed, 
+            maxSpeed 
+        } 
+    ) {
+        //  Parameters  ------------------------- 
+        this.particlesPerPixel = particlesPerPixel; 
+        this.color = color; 
+        this.minSize = minSize; 
+        this.maxSize = maxSize; 
+        this.minSpeed = minSpeed; 
+        this.maxSpeed = maxSpeed; 
+
+        //  Data  ------------------------------- 
+        this._particles = []; 
+        this._space = {
+            width: viewport.width, 
+            height: viewport.height 
+        }; 
+
+        //  Init logic  ------------------------- 
+        this._updatePopulation(); 
+    }
+
+
+    //  Partice population  --------------------- 
+    _updatePopulation () 
     {
-        // generate position 
-        let x = canvas.width * Math.random(); 
-        let y = canvas.height * Math.random(); 
+        // goal population size 
+        let windowArea = viewport.width * viewport.height; 
+        let goalSize = Math.round( this.particlesPerPixel * windowArea ); 
 
-        // generate size 
-        let size = minSize + Math.random() * ( maxSize - minSize ); 
+        // particles to create / delete 
+        let populationDelta = goalSize - this._particles.length; 
 
-        // generate velocity 
+        // change population 
+        if ( populationDelta > 0 ) 
+        {
+            // create particles 
+            this._addParticles( populationDelta ); 
+        }
+        else if ( populationDelta < 0 )
+        {
+            // delete particles 
+            this._deleteParticles( - populationDelta ); 
+        }
+    }
+
+    _addParticles ( nParticles ) 
+    {
+        for ( let i = 0; i < nParticles; i++ ) 
+        {
+            // create particle 
+            let particle = this._createParticle(); 
+            
+            // add particle to the list 
+            this._particles.push( particle ); 
+        }
+    }
+
+    _deleteParticles ( nParticles ) 
+    {
+        this._particles.splice(
+            this._particles.length - nParticles, 
+            nParticles 
+        ); 
+    }
+
+    _createParticle () 
+    {
+        // generate particle data 
+        let { x, y } = this._generatePosition( 
+            { 
+                x: 0, 
+                y: 0, 
+                width: this._space.width, 
+                height: this._space.height 
+            } 
+        ); 
+        let velocity = this._generateVelocity( this.minSpeed, this.maxSpeed ); 
+        let size = this._generateSize( this.minSize, this.maxSize ); 
+
+        // create particle 
+        let particle = new Particle( x, y, size, this.color, velocity ); 
+
+        return particle; 
+    }
+
+    _generatePosition ( area ) 
+    {
+        let x = area.x + area.width * Math.random(); 
+        let y = area.y + area.height * Math.random(); 
+        return { x, y }; 
+    }
+
+    _generateVelocity ( minSpeed, maxSpeed ) 
+    {
         let direction = Math.random() * Math.PI * 2; 
         let speed = minSpeed + Math.random() * ( maxSpeed - minSpeed ); 
-        let velocity = 
-        {
+
+        return {
             x: speed * Math.cos( direction ), 
             y: speed * Math.sin( direction ) 
         }; 
-
-        // create particle 
-        return new Particle( x, y, size, color, velocity ); 
     }
-}; 
 
-
-
-
-
-
-
-
-
-//  --  Connections  -------------------------------------------------------------------- 
-
-function ConnectionsDrawer ( color, maxDistance ) 
-{
-    //  --  Interface  -- 
-    return function drawConnections ( particles, context ) 
+    _generateSize ( minSize, maxSize ) 
     {
-        // go over each pair of particles 
-        for ( let i = 0; i < particles.length - 1; i++ ) 
-        {
-            for ( let i2 = i + 1; i2 < particles.length; i2++ ) 
-            {
-                // pairt of particles 
-                let a = particles[i]; 
-                let b = particles[i2]; 
-
-                // if particles are connected, draw connection 
-                let connection = createConnectionIfPossible( a, b ); 
-                if ( connection != null ) 
-                {
-                    drawConnection( connection, context ); 
-                }
-            }
-        }
+        return minSize + Math.random() * ( maxSize - minSize ); 
     }
 
 
-    //  --  Tech  -- 
-    function createConnectionIfPossible ( particleA, particleB ) 
+    //  Particle access  ------------------------ 
+    forEach ( callback ) 
     {
-        let distance = Math.sqrt(
-            ( particleA.x - particleB.x ) * ( particleA.x - particleB.x ) 
-            + 
-            ( particleA.y - particleB.y ) * ( particleA.y - particleB.y ) 
+        return this._particles.forEach( callback ); 
+    }
+
+    getParticle ( i ) 
+    {
+        return this._particles[ i ]; 
+    }
+
+    count () 
+    {
+        return this._particles.length; 
+    }
+
+
+    //  Updating  ------------------------------- 
+    update () 
+    {
+        // update each particle 
+        this._particles.forEach( particle => particle.update() ); 
+    }
+
+
+    //  Operations  ----------------------------- 
+    resize () 
+    {
+        this._updatePopulation(); 
+        this._updateSpace(); 
+    }
+
+    _updateSpace () 
+    {
+        // spaces for particles 
+        let oldSpace = this._space; 
+        let newSpace = {
+            width: viewport.width, 
+            height: viewport.height 
+        }; 
+
+        // find translation from old space to new space 
+        let translation = {
+            scaleX: newSpace.width / oldSpace.width, 
+            scaleY: newSpace.height / oldSpace.height 
+        }; 
+
+        // set current space to new one 
+        this._space = newSpace; 
+
+        // translate all particles to new space 
+        this._particles.forEach(
+            particle => particle.translateToSpace( translation ) 
+        ); 
+    }
+
+
+    //  Drawing  -------------------------------- 
+    drawMe ( context ) 
+    {
+        // start drawing 
+        context.beginPath(); 
+
+        // draw each particle 
+        this._particles.forEach( 
+            particle => { particle.drawMe( context ) } 
         ); 
 
-        if ( distance <= maxDistance ) 
+        // finish drawing 
+        context.fillStyle = this.color; 
+        context.fill(); 
+    }
+} 
+
+
+
+
+
+
+
+
+
+//  Connections  ------------------------------------------------------------------------ 
+
+class ConnectionColors 
+{
+    constructor ( nColors ) 
+    {
+        //  Data  -------------------------------
+        this._colors = new Array( nColors ); 
+
+
+        //  Init logic  -------------------------
+        let baseColor = CONNECTION_COLOR; 
+        for ( let i = 0; i < nColors; i++ ) 
         {
-            return {
-                a: particleA, 
-                b: particleB, 
-                distance: distance 
-            }; 
-        } 
-        else 
-        {
-            return null; 
+            let opacity = this._numberToColorChannel( i / ( nColors - 1 ) ); 
+            this._colors[i] = baseColor + opacity; 
         }
     }
 
-    function drawConnection ( connection, context ) 
-    {
-        // calculate opacity 
-        let proximity = 1 - connection.distance / maxDistance; 
-        let opacity = numberToColorChannel( proximity ); 
 
-        // draw connections 
-        context.strokeStyle = color + opacity; 
-        context.lineWidth = connectionWidth; 
-        context.beginPath(); 
-        context.moveTo( connection.a.x, connection.a.y ); 
-        context.lineTo( connection.b.x, connection.b.y ); 
-        context.stroke(); 
+    //  Interface  ------------------------------
+    getColor ( opacity ) 
+    {
+        // map opacity from [0, 1] to [0, maxIndex] 
+        let i = opacity * ( this._colors.length - 1 ); 
+        i = Math.round( i ); 
+
+        // get color 
+        return this._colors[i]; 
     }
 
-    function numberToColorChannel ( n ) 
+
+    //  Tech  -----------------------------------
+    _numberToColorChannel ( n ) 
     {
         // map [0, 1] range to [0, 255] 
         let n255 = Math.round( 255 * n ); 
@@ -258,161 +419,231 @@ function ConnectionsDrawer ( color, maxDistance )
     }
 }
 
-
-
-
-
-
-
-
-
-//  --  World  -------------------------------------------------------------------------- 
-
-let world = new function () 
+class Connections 
 {
-    //  --  Data  -- 
-    // particles 
-    this.particles = []; 
-    this.createParticle = ParticleFactory( 
-        minParticleSize, 
-        maxParticleSize, 
-        particleColor, 
-        minParticleSpeed, 
-        maxParticleSpeed 
-    ); 
-    // connections 
-    this.drawConnections = ConnectionsDrawer( 
-        connectionColor, 
-        maxConnectedDistance 
-    ); 
-
-
-
-    //  --  Life cycle  -- 
-    this.update = function () 
+    constructor ( particles, color, maxDistance ) 
     {
-        // update each particle 
-        this.particles.forEach( 
-            particle => { particle.update() } 
-        ); 
-
-        // respawn particles that leave the world 
-        this.checkLeavingWorld(); 
-    }
-
-    this.drawMe = function ( context ) 
-    {
-        // draw each particle 
-        this.particles.forEach( 
-            particle => { particle.drawMe( context ) } 
-        ); 
-
-        // draw connections between particles 
-        this.drawConnections( this.particles, context ); 
+        //  --  Data  -- 
+        this.color = color; 
+        this.maxDistance = maxDistance; 
+        this._particles = particles; 
+        this._colors = new ConnectionColors( 100 ); 
     }
 
 
-
-    //  --  Leaving world checks  -- 
-    // respawn particles that are leaving the world 
-    this.checkLeavingWorld = function () 
+    //  Drawing  -------------------------------- 
+    drawMe ( context ) 
     {
-        this.particles.forEach(
+        // common drawing state 
+        context.lineWidth = CONNECTION_WIDTH; 
+
+        // go over each pair of particles 
+        for ( let i = 0; i < this._particles.count() - 1; i++ ) 
+        {
+            for ( let i2 = i + 1; i2 < this._particles.count(); i2++ ) 
+            {
+                // pairt of particles 
+                let a = this._particles.getParticle( i ); 
+                let b = this._particles.getParticle( i2 ); 
+
+                // if particles are connected, draw connection 
+                let connection = this._createConnectionIfPossible( a, b ); 
+                if ( connection != null ) 
+                {
+                    this._drawConnection( connection, context ); 
+                }
+            }
+        }
+    }
+
+    _drawConnection ( connection, context ) 
+    {
+        // calculate proximity 
+        let proximity = 1 - connection.distance / this.maxDistance; 
+
+        // draw connections 
+        context.strokeStyle = this._colors.getColor( proximity ); 
+        context.beginPath(); 
+        context.moveTo( connection.a.x, connection.a.y ); 
+        context.lineTo( connection.b.x, connection.b.y ); 
+        context.stroke(); 
+    }
+
+
+    //  Tech  ----------------------------------- 
+    _createConnectionIfPossible ( particleA, particleB ) 
+    {
+        let distance = Math.sqrt(
+            ( particleA.x - particleB.x ) * ( particleA.x - particleB.x ) 
+            + 
+            ( particleA.y - particleB.y ) * ( particleA.y - particleB.y ) 
+        ); 
+
+        if ( distance <= this.maxDistance ) 
+        {
+            return {
+                a: particleA, 
+                b: particleB, 
+                distance: distance 
+            }; 
+        } 
+        else 
+        {
+            return null; 
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+//  World  ------------------------------------------------------------------------------ 
+
+let WorldAreas = {
+    INSIDE: 0, 
+    TOP: 1, 
+    BOTTOM: 2, 
+    LEFT: 3, 
+    RIGHT: 4 
+}; 
+
+class WorldGeometry 
+{
+    //  Areas  ---------------------------------- 
+    getArea ( x, y ) 
+    {
+        if ( y < 0 ) return WorldAreas.TOP; 
+        if ( y > viewport.height ) return WorldAreas.BOTTOM; 
+        if ( x < 0 ) return WorldAreas.LEFT; 
+        if ( x > viewport.width ) return WorldAreas.RIGHT; 
+        return WorldAreas.INSIDE; 
+    }
+
+    getOppositeArea ( area ) 
+    {
+        switch ( area ) 
+        {
+            case WorldAreas.TOP: return WorldAreas.BOTTOM; 
+            case WorldAreas.BOTTOM: return WorldAreas.TOP; 
+            case WorldAreas.LEFT: return WorldAreas.RIGHT; 
+            case WorldAreas.RIGHT: return WorldAreas.LEFT; 
+            default: 
+                throw new Error( "Unrecognized area" ); 
+        }
+    }
+
+
+    //  Creating points  ------------------------ 
+    randomPointOnEdge ( area ) 
+    {
+        switch ( area ) 
+        {
+            case WorldAreas.TOP: 
+                return {
+                    x: viewport.width * Math.random(), 
+                    y: 0 
+                }; 
+            case WorldAreas.BOTTOM: 
+                return {
+                    x: viewport.width * Math.random(), 
+                    y: viewport.height  
+                }; 
+            case WorldAreas.LEFT: 
+                return {
+                    x: 0, 
+                    y: viewport.height * Math.random() 
+                }; 
+            case WorldAreas.RIGHT: 
+                return {
+                    x: viewport.width, 
+                    y: viewport.height * Math.random() 
+                }; 
+            default: 
+                throw new Error( "Unrecognized area" ); 
+        }
+    }
+}
+
+class World 
+{
+    constructor () 
+    {
+        //  Data  ------------------------------- 
+        // particles 
+        this._particles = new Particles(
+            {
+                particlesPerPixel: PARTICLES_PER_PIXEL, 
+                minSize: PARTICLES_MIN_SIZE, 
+                maxSize: PARTICLES_MAX_SIZE, 
+                color: PARTICLES_COLOR, 
+                minSpeed: PARTICLES_MIN_SPEED, 
+                maxSpeed: PARTICLES_MAX_SPEED 
+            }
+        );
+
+        // connections 
+        this._connections = new Connections( 
+            this._particles, 
+            CONNECTION_COLOR, 
+            CONNECTION_MAX_DISTANCE 
+        ); 
+
+        // geometry 
+        this._worldGeometry = new WorldGeometry(); 
+    }
+
+
+    //  Updating  ----------------------------- 
+    update = function () 
+    {
+        this._particles.update(); 
+        this._respawnLeavingWorldParticles(); 
+    }
+
+
+    //  Operations  -----------------------------  
+    resize () 
+    {
+        this._particles.resize(); 
+    }
+
+
+    //  Drawing  -------------------------------- 
+    drawMe = function ( context ) 
+    {
+        this._particles.drawMe( context ); 
+        this._connections.drawMe( context ); 
+    }
+
+
+    //  Leaving world particles  ---------------- 
+    _respawnLeavingWorldParticles () 
+    {
+        this._particles.forEach(
             particle =>
             {
                 // find area that particle is in 
-                let area = this.getArea( particle.x, particle.y ); 
+                let area = this._worldGeometry.getArea( particle.x, particle.y ); 
 
                 // if particle is outside the world, respawn it 
-                if ( area != "inside" ) 
+                if ( area != WorldAreas.INSIDE ) 
                 {
-                    let point = this.getRespawnPoint( particle ); 
+                    // generate respawn point 
+                    let newArea = this._worldGeometry.getOppositeArea( area ); 
+                    let point = this._worldGeometry.randomPointOnEdge( newArea ); 
+
+                    // move particle to respawn point 
                     particle.x = point.x; 
                     particle.y = point.y; 
                 }
             }
         ); 
-    }
-
-    // get new position for objects that leave the world 
-    this.getRespawnPoint = function ( particle ) 
-    {
-        // see where particle is 
-        let area = this.getArea( particle.x, particle.y ); 
-
-        // check that the particle is inside the world 
-        if ( area == "inside" ) 
-            throw new Error( "Particle wants to respawn but it's inside the world" ); 
-
-        // create respawn point 
-        let newArea = this.getOppositeArea( area ); 
-        let point = this.randomPointOnEdge( newArea ); 
-
-        return point; 
-    }
-
-    // get area of the world where the point is 
-    this.getArea = function ( x, y ) 
-    {
-        if ( y < 0 ) return "top"; 
-        if ( y > canvas.height ) return "bottom"; 
-        if ( x < 0 ) return "left"; 
-        if ( x > canvas.width ) return "right"; 
-        return "inside"; 
-    }
-
-    // get area of the world opposite to given area 
-    this.getOppositeArea = function ( area ) 
-    {
-        switch ( area ) 
-        {
-            case "top": return "bottom"; 
-            case "bottom": return "top"; 
-            case "left": return "right"; 
-            case "right": return "left"; 
-            default: 
-                throw new Error( "Unrecognized area" ); 
-        }
-    }
-
-    // create random point on the edge that corresponds to given area 
-    this.randomPointOnEdge = function ( area ) 
-    {
-        switch ( area ) 
-        {
-            case "top": 
-                return {
-                    x: canvas.width * Math.random(), 
-                    y: 0 
-                }; 
-            case "bottom": 
-                return {
-                    x: canvas.width * Math.random(), 
-                    y: canvas.height  
-                }; 
-            case "left": 
-                return {
-                    x: 0, 
-                    y: canvas.height * Math.random() 
-                }; 
-            case "right": 
-                return {
-                    x: canvas.width, 
-                    y: canvas.height * Math.random() 
-                }; 
-            default: 
-                throw new Error( "Unrecognized area" ); 
-        }
-    }
-
-
-
-    //  --  Init  -- 
-    // create particles 
-    for ( let i = 0; i < nParticles; i++ ) 
-    {
-        let s = this.createParticle(); 
-        this.particles.push( s ); 
     }
 }; 
 
@@ -424,59 +655,129 @@ let world = new function ()
 
 
 
-//  --  Main part  ----------------------------------------------------------------------
+//  Gradient  ------------------------------------------------------------------------- 
 
-(function init () 
+class Gradient 
 {
-    // draw background 
-    drawBackground(); 
-    window.addEventListener( "resize", drawBackground ); 
-})(); 
+    constructor ( canvas ) 
+    {
+        //  Data  ------------------------------- 
+        this.direction = {
+            x: Math.cos( - GRADIENT_ANGLE / 180 * Math.PI ), 
+            y: Math.sin( - GRADIENT_ANGLE / 180 * Math.PI ) 
+        }; 
+        this._context = canvas.context; 
+    }
 
-(function update () 
-{
-    // update tech objects 
-    canvas.updateGeometry(); 
+    drawMe () 
+    {
+        // clear screen 
+        this._context.clearRect( 0, 0, viewport.width, viewport.height ); 
 
+        // create gradient points 
+        let pointA = {
+            x: 0, 
+            y: viewport.height 
+        }; 
+        let pointB = {
+            x: pointA.x + this.direction.x * GRADIENT_SCREEN_COVERAGE * viewport.height, 
+            y: pointA.y + this.direction.y * GRADIENT_SCREEN_COVERAGE * viewport.height 
+        }; 
 
-    // update stuff 
-    world.update(); 
-
-
-    // draw stuff 
-    let context = canvas.context; 
-    context.clearRect( 0, 0, canvas.width, canvas.height ); 
-    world.drawMe( context ); 
-
-
-    // ask for next update 
-    window.requestAnimationFrame( update ); 
-})(); 
-
-
-function drawBackground () 
-{
-    // get context 
-    let context = canvasBackground.context; 
-    console.log( "drawing background" ); 
-    // clear screen 
-    context.clearRect( 0, 0, canvasBackground.width, canvasBackground.height ); 
-
-    // create gradient 
-    let x0 = 0.2 * canvasBackground.width; 
-    let y0 = 1 * canvasBackground.height; 
-    let x1 = x0 + 0.11 * canvasBackground.width; 
-    let y1 = y0 - 0.24 * canvasBackground.width; 
-    let gradient = context.createLinearGradient( x0, y0, x1, y1 ); 
-    gradient.addColorStop( 0, "#50aaff" ); 
-    gradient.addColorStop( 1, "#ffffff" ); 
-
-    // use gradient as style 
-    context.fillStyle = gradient; 
-
-    // draw gradient 
-    context.fillRect( 0, 0, canvasBackground.width, canvasBackground.height ); 
+        // create gradient 
+        let gradient = this._context.createLinearGradient( 
+            pointA.x, 
+            pointA.y, 
+            pointB.x, 
+            pointB.y 
+        ); 
+        gradient.addColorStop( GRADIENT_FIRST_POINT, GRADIENT_FIRST_COLOR ); 
+        gradient.addColorStop( GRADIENT_SECOND_POINT, GRADIENT_SECOND_COLOR ); 
+        
+        // draw gradient 
+        this._context.fillStyle = gradient; 
+        this._context.fillRect( 0, 0, viewport.width, viewport.height ); 
+    }
 }
 
 
 
+
+
+
+
+
+//  Events  ----------------------------------------------------------------------------- 
+
+function onResize ( event ) 
+{
+    // update tech objects 
+    viewport.update(); 
+    canvas.update(); 
+    canvasBackground.update(); 
+
+    // resize the world 
+    world.resize(); 
+
+    // draw background 
+    gradient.drawMe(); 
+}
+
+
+
+
+
+
+
+
+
+//  Main part  -------------------------------------------------------------------------- 
+
+//  Tech objects  ------------------------------- 
+let viewport = new Viewport( "canvas" ); 
+let canvas = new Canvas( "canvas" ); 
+let canvasBackground = new Canvas( "canvas-background" ); 
+let mouse = new Mouse(); 
+let gradient = new Gradient( canvasBackground ); 
+
+
+//  Data  --------------------------------------- 
+let world = new World(); 
+
+
+
+
+
+//  Logic  -------------------------------------- 
+
+function init () 
+{
+    // create background 
+    gradient.drawMe(); 
+
+    // add event listeners 
+    window.addEventListener( "resize", onResize ); 
+} 
+
+function update () 
+{    
+    // update stuff 
+    world.update(); 
+
+    // draw stuff 
+    let context = canvas.context; 
+    context.clearRect( 0, 0, viewport.width, viewport.height ); 
+    world.drawMe( context ); 
+    gradient.drawMe(); 
+
+    // ask for next update 
+    window.requestAnimationFrame( update ); 
+} 
+
+
+
+
+
+//  Start  -------------------------------------- 
+init(); 
+update(); 

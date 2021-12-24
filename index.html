@@ -22,32 +22,55 @@
 <header id="header">
     <a href="http://skycolor.me" class="logo">skycolor<span>.me</span></a> 
     <nav> 
-        <a href="#my-projects" class="navigation-button">My projects</a> 
-        <a href="#small-projects" class="navigation-button">Small practice projects</a> 
+        <a href="#about-me" class="navigation-button">Обо мне</a> 
+        <a href="#my-projects" class="navigation-button">Мои проекты</a> 
     </nav>
 </header> 
 
 
 <main>
-    <section id="my-projects" class="section"> 
-        <h1>My projects</h1> 
-        <div class="nothing-to-see-here">
-            <p>Nothing to see here yet...</p> 
-        </div> 
-    </section> 
+    <section id="about-me" class="section"> 
+        <h1>Обо мне</h1>
+        <div class="my-info"> 
+            <img class="my-picture" src="me_small_square.png"> 
+            <div class="my-details"> 
+                <h2 class="my-name">
+                    <a href="https://tomsk.hh.ru/applicant/resumes/view?resume=710acf24ff06a2b5820039ed1f536d39434552">Алексей Садовников</a>
+                </h2> 
+                <p>Возраст: 25 лет</p> 
+                <p>Образование: Томский политехнический университет (неоконченное, 1 курс)</p>
+                <p>Местоположение: Томск, Россия</p> 
+                <p>Статус: изучаю программирование, ищу работу</p> 
+                <p>Мое резюме: 
+                    <a href="https://tomsk.hh.ru/applicant/resumes/view?resume=710acf24ff06a2b5820039ed1f536d39434552">hh.ru</a>
+                </p> 
+            </div>
+        </div>
+    </section>
 
-    <section id="small-projects" class="section"> 
-        <h1>Small practice projects</h1> 
+    <section id="my-projects" class="section"> 
+        <h1>Мои проекты</h1> 
         <div class="project-grid"> 
             <a class="project-card" href="small_projects/small_squares/small_squares.html"> 
-                <img class="project-icon" src="small_projects/small_squares/icon.png" width="165" height="125"> 
-                <p class="project-name">Small squares</p> 
-                <p class="project-description">The first small thing that i made in a canvas</p> 
+                <div class="project-icon"> 
+                    <img src="small_projects/small_squares/icon.png" width="165" height="125"> 
+                </div>
+                <p class="project-name">Маленькие квадраты</p> 
+                <p class="project-description">Самое первое что я сделал в HTML канвасе</p> 
             </a>
             <a class="project-card" href="small_projects/flying_particles/flying_particles.html"> 
-                <img class="project-icon" src="small_projects/flying_particles/icon.png" width="165" height="125"> 
-                <p class="project-name">Flying particles</p> 
-                <p class="project-description">Background with flying particles</p> 
+                <div class="project-icon"> 
+                    <img src="small_projects/flying_particles/icon.png" width="165" height="125"> 
+                </div>
+                <p class="project-name">Летающие частицы</p> 
+                <p class="project-description">Фон с летающими частицами для сайта</p> 
+            </a>
+            <a class="project-card" href="small_projects/hexagons/hexagons.svg"> 
+                <div class="project-icon"> 
+                    <img src="small_projects/hexagons/icon.png" width="165" height="125"> 
+                </div>
+                <p class="project-name">Шестиугольники</p> 
+                <p class="project-description">Матрица шестиугольников со световым эффектом в SVG</p> 
             </a>
         </div>
     </section> 

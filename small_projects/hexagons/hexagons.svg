@@ -1,0 +1,62 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"> 
+    
+    <defs>
+
+        <!-- Hexagon mask --> 
+        <path id="hexagon"
+                d="
+                    M 0.866 0.5 
+                    L 0 1 
+                    L -0.866 0.5 
+                    L -0.866 -0.5 
+                    L 0 -1 
+                    L 0.866 -0.5 
+                    Z 
+                    " 
+                fill="#000" 
+                transform="scale( 25, 25 )" 
+                vector-effect="non-scaling-stroke"
+                />
+        <pattern id="hexagon-pattern" 
+            x="0" y="0" width="50" height="90" 
+            patternUnits="userSpaceOnUse"
+            patternContentUnits="userSpaceOnUse"> 
+            <use href="#hexagon" transform="translate( 25, 25 )"></use> 
+        </pattern>
+        <g id="hexagon-grid" transform="scale( 0.9, 0.9 )"> 
+            <rect x="0" y="0" width="200%" height="200%" fill="url(#hexagon-pattern)"/> 
+            <rect x="0" y="0" width="220%" height="220%" fill="url(#hexagon-pattern)" transform="translate( -25, 45 )"/> 
+        </g>
+        <mask id="hexagon-mask" > 
+            <rect width="100%" height="100%" fill="#fff" /> 
+            <use href="#hexagon-grid"></use> 
+        </mask>
+
+        <!-- Light -->
+        <radialGradient id="light-gradient" 
+            fx="50%" fy="50%" fr="0%" 
+            cx="50%" cy="50%" r="50%" 
+            gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#05f" /> 
+            <stop offset="25%" stop-color="#05fa" /> 
+            <stop offset="50%" stop-color="#05f5" /> 
+            <stop offset="100%" stop-color="#05f0" />
+        </radialGradient> 
+    </defs> 
+
+
+    <!-- Background --> 
+    <rect width="100%" height="100%" fill="#333"/> 
+
+    <!-- Hexagons -->
+    <rect width="100%" height="100%" fill="#171717" mask="url(#hexagon-mask)"/> 
+
+    <!-- Lights --> 
+    <rect id="light" width="100%" height="100%" fill="url(#light-gradient)" mask="url(#hexagon-mask)"/> 
+
+
+
+    <!-- JavaScript -->
+    <script href="hexagons.js"></script> 
+
+</svg>
