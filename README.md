@@ -1,2 +1,2 @@
 # skycolor.me
-My website
+Мой сайт 
